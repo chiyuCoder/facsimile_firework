@@ -181,16 +181,12 @@ const context = canvas.getContext('2d');
 const time = new Time;
 let rockets = [];
 
-const getTrustParticleFactory = function(baseHue) {
+const getTrustParticleFactory = function() {
 	function getColor() {
 		const hue = Math.floor(Math.random() * 15 + 30);
 		return `hsl(${hue}, 100%, 75%`;
 	}
-	
 	return function(parent) {
-    console.log(parent);
-    console.trace(parent);
-    debugger;
 		const position = this.position.clone();
 		const velocity = this.velocity.clone().multiplyScalar(-.1);
 		velocity.x += (Math.random() - .5) * 8;
@@ -284,6 +280,8 @@ resize();
 
 setInterval(addRocket, 2000);
 render();
+
+
 </script>
 
 </body>
