@@ -1,23 +1,4 @@
 
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>粒子烟花</title>
-
-<style>
-body {
-	background-image: linear-gradient(6deg, #214, #000);
-	background-size: 100% 100%;
-        overflow:hidden
-}
-
-canvas { display: block; }</style>
-</head>
-<body>
-<div></div>
-
-<script>
 class Vector2 {
 	constructor(x = 0, y = 0) {
 		this.x = x;
@@ -186,15 +167,18 @@ const getTrustParticleFactory = function() {
 		const hue = Math.floor(Math.random() * 15 + 30);
 		return `hsl(${hue}, 100%, 75%`;
 	}
-	return function(parent) {
+	console.log(this);
+	
+	return function () {
+		console.log(this);
+		debugger;
 		const position = this.position.clone();
 		const velocity = this.velocity.clone().multiplyScalar(-.1);
 		velocity.x += (Math.random() - .5) * 8;
 		const color = getColor();
 		const radius = 1 + Math.random();
 		const lifetime = .5 + Math.random() * .5;
-		const mass = .01;
-		
+		const mass = .01;		
 		return new Particle(position, velocity, color, radius, lifetime, mass);
 	};
 };
@@ -226,6 +210,7 @@ const getExplosionFactory = function(baseHue) {
 		const velocity = new Vector2(Math.cos(direction) * force, Math.sin(direction) * force);
 		const lifetime = .5 + Math.random();
 		const mass = .075;
+
 		return new Trail(getChildFactory(), position, velocity, lifetime, mass);
 	}
 	
@@ -271,17 +256,11 @@ const resize = function() {
 	canvas.width = window.innerWidth;
 };
 
-// canvas.onclick = addRocket;
+canvas.onclick = addRocket;
 document.body.appendChild(canvas);
 
 // window.onresize = resize;
 resize();
 
-setInterval(addRocket, 2000);
+// setInterval(addRocket, 2000);
 render();
-
-
-</script>
-
-</body>
-</html>

@@ -5,7 +5,7 @@ let testB = path.resolve(__dirname, "src/js/entry");
 
 module.exports = {
 	entry:{
-		firework: "./resource/js/entry/firework"
+		firework2: "./resource/js/entry/firework2.es6"
 	},
 	// entry: "./resource/js/entry/firework",
 	output: {
