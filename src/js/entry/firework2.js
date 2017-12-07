@@ -80,6 +80,8 @@ return /******/ (function(modules) { // webpackBootstrap
 "use strict";
 
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
@@ -88,7 +90,36 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var stTool = {
+var devTool = {
+    debugInstances: {},
+    debug: function debug() {
+        var debugId = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "__default__";
+        var times = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+
+        if (times <= 1) {
+            debugger;
+        } else {
+            if (debugId in devTool.debugInstances) {
+                devTool.debugInstances[debugId]++;
+                if (times <= devTool.debugInstances[debugId]) {
+                    debugger;
+                    devTool.debugInstances[debugId] = 0;
+                }
+            } else {
+                devTool.debugInstances[debugId] = 1;
+            }
+        }
+    },
+    log: function log(logValue) {
+        var debugId = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "__default__";
+        var times = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
+
+        console.trace(logValue);
+        devTool.debug(debugId, times);
+    }
+},
+    stTool = {
+    dev: devTool,
     rand: function rand() {
         var min = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
         var max = arguments[1];
@@ -101,7 +132,7 @@ var stTool = {
                 min = max;
                 max = tmp;
             }
-            return Math.floor(Math.random() * (min + 1)) + max - min;
+            return Math.floor(Math.random() * (max - min)) + min;
         } else {
             return Math.floor(Math.random() * (min + 1));
         }
@@ -122,6 +153,13 @@ var stTool = {
         }
         colorFunc += ")";
         return colorFunc;
+    },
+    animate: function animate(callback) {
+        var FPS = 1000 / 60;
+        var ani = window.requestAnimationFrame || window.webkitRequestAnimationFrame || setTimeout(function (callBack) {
+            callBack();
+        }, FPS);
+        ani(callback);
     }
 };
 
@@ -129,17 +167,32 @@ var Vertex = function () {
     function Vertex() {
         var x = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
         var y = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+        var r = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 5;
 
         _classCallCheck(this, Vertex);
 
         this.x = x;
         this.y = y;
+        this.r = r;
     }
 
     _createClass(Vertex, [{
         key: "clone",
         value: function clone() {
-            return new Vertex(this.x, this.y);
+            return new Vertex(this.x, this.y, this.r);
+        }
+    }, {
+        key: "move",
+        value: function move(x, y) {
+            if (typeof y == 'undefined') {
+                if ((typeof x === "undefined" ? "undefined" : _typeof(x)) == 'object') {
+                    y = x.y;
+                    x = x.x;
+                } else {
+                    y = 0;
+                }
+            }
+            return new Vertex(this.x - x, this.y - y, this.r);
         }
     }]);
 
@@ -157,15 +210,55 @@ var Track = function () {
         this.startPoint = start;
         this.nowPoint = start;
         this.endPoint = end;
-        this.traced = [];
+        this.angle = this.getAngle();
+        this.trails = [];
+        this.trailLength = saveLength;
         for (var p = 0; p < saveLength; p++) {
-            this.traced.push(start.clone());
+            this.trails.push(start.clone());
         }
     }
 
     _createClass(Track, [{
-        key: "forward",
-        value: function forward() {}
+        key: "getDistance",
+        value: function getDistance(startPoint, endPoint) {
+            if (!startPoint) {
+                startPoint = this.startPoint;
+            }
+            if (!endPoint) {
+                endPoint = this.endPoint;
+            }
+            return Math.sqrt(Math.pow(startPoint.x - endPoint.x, 2) + Math.pow(Math.pow(startPoint.y - endPoint.y, 2)));
+        }
+    }, {
+        key: "getAngle",
+        value: function getAngle(startPoint, endPoint) {
+            if (!startPoint) {
+                startPoint = this.startPoint;
+            }
+            if (!endPoint) {
+                endPoint = this.endPoint;
+            }
+            return Math.atan2(startPoint.y - endPoint.y, startPoint.x - endPoint.x);
+        }
+    }, {
+        key: "move",
+        value: function move(deviant, angle) {
+            if (typeof angle == 'undefined') {
+                angle = this.angle;
+            }
+            if (this.nowPoint.y < this.endPoint.y) {
+                this.end();
+                return 'end';
+            }
+            this.nowPoint = this.nowPoint.move(deviant * Math.cos(angle), deviant * Math.sin(angle));
+            this.trails.push(this.nowPoint.clone());
+        }
+    }, {
+        key: "end",
+        value: function end() {
+            this.alive = false;
+            console.log("end");
+        }
     }]);
 
     return Track;
@@ -177,16 +270,41 @@ var Firework = function (_Track) {
     function Firework(start, end, ground) {
         _classCallCheck(this, Firework);
 
-        var _this = _possibleConstructorReturn(this, (Firework.__proto__ || Object.getPrototypeOf(Firework)).call(this, start, end));
+        var _this = _possibleConstructorReturn(this, (Firework.__proto__ || Object.getPrototypeOf(Firework)).call(this, start, end, 6));
 
+        _this.tracedLength = 6;
         _this.ground = ground;
         _this.color = stTool.getRandomClr();
+        _this.alive = true;
+        _this.speed = 20;
+        _this.acceleration = 0.002;
         return _this;
     }
 
     _createClass(Firework, [{
-        key: "fire",
-        value: function fire() {}
+        key: "slide",
+        value: function slide() {
+            var firework = this;
+            firework.describe();
+            this.speed += this.acceleration;
+            firework.move(firework.speed);
+        }
+    }, {
+        key: "describe",
+        value: function describe() {
+            var firework = this,
+                drawer = this.ground;
+            drawer.fillStyle = firework.color;
+            for (var a = 0, len = firework.trailLength; a < len; a++) {
+                var drawerPoint = firework.trails[a];
+                drawerPoint.r = drawerPoint.r / Math.floor((len - a) * 2);
+                drawer.beginPath();
+                drawer.arc(drawerPoint.x, drawerPoint.y, drawerPoint.r, 0, Math.PI * 2);
+                drawer.fill();
+            }
+            debugger;
+            firework.trails.shift();
+        }
     }]);
 
     return Firework;
@@ -209,9 +327,11 @@ var Ground = function () {
         value: function prepare() {
             var drawer = this.drawer,
                 ground = this;
+            drawer.clearRect(0, 0, ground.width, ground.height);
+
             drawer.globalCompositeOperation = "destination-over";
-            drawer.fillStyle = "rgba(0,0,0,.5)";
-            drawer.fillRect(0, 0, ground.width, ground.height);
+            drawer.fillStyle = "rgba(0,0,0,0)";
+            drawer.beginPath();
         }
     }, {
         key: "installFireworks",
@@ -220,10 +340,26 @@ var Ground = function () {
 
             var ground = this;
             while (num--) {
-                var startPoint = new Vertex(ground.width + stTool.rand(-60, 60), ground.height),
+                var startPoint = new Vertex(ground.width / 2 + stTool.rand(-60, 60), ground.height),
                     endPoint = new Vertex(stTool.rand(0, ground.width), stTool.rand(ground.height * 0.2));
-                this.fireworks.push(new Firework(startPoint, endPoint, ground));
+                this.fireworks.push(new Firework(startPoint, endPoint, ground.drawer));
             }
+        }
+    }, {
+        key: "celebrate",
+        value: function celebrate() {
+            var ground = this,
+                fireworks = this.fireworks,
+                len = fireworks.length;
+            ground.prepare();
+            for (var n = 0; n < len; n++) {
+                if (fireworks[n].alive) {
+                    fireworks[n].slide();
+                }
+            }
+            stTool.animate(function () {
+                ground.celebrate();
+            });
         }
     }]);
 
@@ -231,6 +367,9 @@ var Ground = function () {
 }();
 
 var celebrateGround = new Ground("#bg");
+
+celebrateGround.installFireworks();
+celebrateGround.celebrate();
 
 /***/ })
 /******/ ]);
